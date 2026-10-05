@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f472b6" />
+      <stop offset="50%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#db2777" />
+    </linearGradient>
+    <linearGradient id="pinkGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#db2777" />
+      <stop offset="100%" stop-color="#be185d" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#be185d" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- Background ribbon strand (right leg behind) -->
+  <path d="M 40 45 L 20 85 C 19 87 23 89 27 86 L 47 62" fill="url(#pinkGradDark)" filter="url(#shadow)" />
+  <!-- Loop & front leg -->
+  <path d="M 50 15 C 36 15 28 26 29 40 C 30 52 42 62 55 75 L 75 95 C 78 97 82 95 81 90 L 68 55 C 72 45 72 35 68 28 C 64 20 58 15 50 15 Z" fill="url(#pinkGrad)" filter="url(#shadow)" />
+  <!-- Inner loop cutout effect -->
+  <path d="M 50 24 C 43 24 39 30 40 38 C 41 46 47 52 52 58 C 57 52 61 46 60 38 C 59 30 56 24 50 24 Z" fill="#ffffff" opacity="0.95" />
+</svg>
