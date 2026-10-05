@@ -9,7 +9,7 @@ import { AddUserModal } from './components/AddUserModal';
 import { RibbonIcon } from './components/RibbonIcon';
 import { AppState, TeamMember, StepLog, UnitPreference } from './types';
 import { storage, INITIAL_STATE } from './services/storage';
-import { Heart, RefreshCw, Sparkles } from 'lucide-react';
+import { Heart, Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
@@ -95,12 +95,6 @@ export const App: React.FC = () => {
     setIsAddStepsOpen(true);
   };
 
-  const handleResetData = () => {
-    if (window.confirm('Reset tracker back to default demo data?')) {
-      const reset = storage.resetToDefaults();
-      setState(reset);
-    }
-  };
 
   if (loading) {
     return (
@@ -194,16 +188,8 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button
-              onClick={handleResetData}
-              className="text-slate-400 hover:text-pink-600 flex items-center gap-1 transition-colors"
-              title="Reset to default challenge data"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>Reset Demo Data</span>
-            </button>
-            <span className="text-pink-600 font-semibold flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Netlify Ready
+            <span className="text-pink-600 font-bold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> 100 Miles in October
             </span>
           </div>
 

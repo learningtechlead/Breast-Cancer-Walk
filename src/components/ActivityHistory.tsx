@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { RibbonIcon } from './RibbonIcon';
-import { Trash2, Download, Footprints, MapPin, Filter, ArrowUpDown } from 'lucide-react';
+import { Trash2, Download, Footprints, MapPin, Filter, ArrowUpDown, TrendingUp } from 'lucide-react';
 import { StepLog, TeamMember, UnitPreference } from '../types';
 import { formatNumber, formatDistance } from '../utils/calculator';
 import { storage } from '../services/storage';
@@ -13,6 +12,10 @@ interface ActivityHistoryProps {
   fullState: any;
 }
 
+const MONTH_NAMES = [
+  '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
 export const ActivityHistory: React.FC<ActivityHistoryProps> = ({
   logs,
   members,
@@ -22,8 +25,9 @@ export const ActivityHistory: React.FC<ActivityHistoryProps> = ({
 }) => {
   const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [chartMetric, setChartMetric] = useState<'steps' | 'distance'>('distance');
 
-  // Filter logs
+  // Filter logs for the history list
   const filteredLogs = logs
     .filter((log) => (selectedMemberFilter === 'all' ? true : log.memberId === selectedMemberFilter))
     .sort((a, b) => {
@@ -32,87 +36,216 @@ export const ActivityHistory: React.FC<ActivityHistoryProps> = ({
     });
 
   // Calculate day-by-day aggregated data for the monthly chart
-  const dailyMap: Record<string, number> = {};
+  interface DaySummary {
+    date: string;
+    totalSteps: number;
+    totalDistanceKm: number;
+    totalDistanceMiles: number;
+    walkerDetails: { name: string; steps: number; distance: number; color: string }[];
+  }
+
+  const dailyMap: Record<string, DaySummary> = {};
+  
   logs.forEach((log) => {
-    dailyMap[log.date] = (dailyMap[log.date] || 0) + log.steps;
+    if (!dailyMap[log.date]) {
+      dailyMap[log.date] = {
+        date: log.date,
+        totalSteps: 0,
+        totalDistanceKm: 0,
+        totalDistanceMiles: 0,
+        walkerDetails: [],
+      };
+    }
+    const day = dailyMap[log.date];
+    day.totalSteps += log.steps;
+    day.totalDistanceKm += log.distanceKm;
+    day.totalDistanceMiles += log.distanceMiles;
+    
+    const member = members.find((m) => m.id === log.memberId);
+    day.walkerDetails.push({
+      name: log.memberName,
+      steps: log.steps,
+      distance: unit === 'km' ? log.distanceKm : log.distanceMiles,
+      color: member?.avatarColor || '#ec4899',
+    });
   });
 
   const sortedDates = Object.keys(dailyMap).sort();
-  const maxDaySteps = Math.max(...Object.values(dailyMap), 10000);
+
+  // Find max values for chart scale
+  const maxSteps = Math.max(...sortedDates.map((d) => dailyMap[d].totalSteps), 10000);
+  const maxDistance = Math.max(
+    ...sortedDates.map((d) => (unit === 'km' ? dailyMap[d].totalDistanceKm : dailyMap[d].totalDistanceMiles)),
+    10
+  );
+
+  const unitLabel = unit === 'km' ? 'km' : 'mi';
 
   return (
     <div className="space-y-6">
       
-      {/* Monthly Daily Steps Chart */}
+      {/* Monthly Daily Team Walking Volume Chart */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-pink-100 shadow-soft-pink">
+        
+        {/* Chart Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-              <RibbonIcon className="w-5 h-5 text-pink-600" />
-              Daily Team Walking Volume
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">
-              Collective steps achieved each day this month
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-pink-600" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+                Daily Team Walking Volume
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              Collective progress achieved across each day of October
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Metric Toggle: Distance vs Steps */}
+            <div className="bg-pink-50 p-1 rounded-xl border border-pink-200 flex text-xs font-bold text-slate-600">
+              <button
+                type="button"
+                onClick={() => setChartMetric('distance')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  chartMetric === 'distance'
+                    ? 'bg-pink-600 text-white shadow-xs'
+                    : 'hover:text-pink-600'
+                }`}
+              >
+                Distance ({unitLabel})
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartMetric('steps')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  chartMetric === 'steps'
+                    ? 'bg-pink-600 text-white shadow-xs'
+                    : 'hover:text-pink-600'
+                }`}
+              >
+                Steps
+              </button>
+            </div>
+
+            {/* Export Buttons */}
             <button
               onClick={() => storage.exportLogsAsCSV(fullState)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-pink-700 bg-pink-50 hover:bg-pink-100 border border-pink-200 rounded-xl transition-all"
+              title="Download spreadsheet report"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
-            </button>
-            <button
-              onClick={() => storage.exportDataAsJSON(fullState)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all"
-            >
-              <span>Backup JSON</span>
+              <span className="hidden sm:inline">Export CSV</span>
             </button>
           </div>
         </div>
 
-        {/* Custom SVG / Bar Chart */}
+        {/* Visual Bar Chart */}
         {sortedDates.length > 0 ? (
-          <div className="pt-4">
-            <div className="h-48 sm:h-56 flex items-end gap-2 sm:gap-4 border-b border-pink-100 pb-2 px-2 overflow-x-auto">
-              {sortedDates.map((d) => {
-                const daySteps = dailyMap[d];
-                const heightPercent = Math.max(12, Math.round((daySteps / maxDaySteps) * 100));
-                const dayLabel = d.slice(8); // day of month e.g. "01", "05"
-                const monthName = new Date(d).toLocaleDateString(undefined, { month: 'short' });
+          <div className="pt-6">
+            
+            {/* Chart Area with background grid lines */}
+            <div className="relative border-b-2 border-pink-200 pb-3">
+              
+              {/* Subtle horizontal grid lines */}
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+                <div className="border-b border-pink-300 w-full" />
+                <div className="border-b border-pink-300 w-full" />
+                <div className="border-b border-pink-300 w-full" />
+              </div>
 
-                return (
-                  <div key={d} className="flex-1 min-w-[38px] flex flex-col items-center group relative">
-                    
-                    {/* Tooltip on hover */}
-                    <div className="absolute -top-10 bg-slate-900 text-white text-[11px] font-bold py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg z-20">
-                      {formatNumber(daySteps)} steps ({d})
-                    </div>
+              {/* Bars Row */}
+              <div className="h-56 sm:h-64 flex items-end justify-start sm:justify-center gap-4 sm:gap-8 px-4 overflow-x-auto">
+                {sortedDates.map((dateStr) => {
+                  const day = dailyMap[dateStr];
+                  const daySteps = day.totalSteps;
+                  const dayDistance = unit === 'km' ? day.totalDistanceKm : day.totalDistanceMiles;
+                  
+                  // Calculate bar height percentage based on selected metric
+                  const heightPercent = chartMetric === 'distance'
+                    ? Math.max(14, Math.min(100, Math.round((dayDistance / maxDistance) * 100)))
+                    : Math.max(14, Math.min(100, Math.round((daySteps / maxSteps) * 100)));
 
-                    {/* Bar */}
-                    <div className="w-full max-w-[40px] flex items-end justify-center h-full">
+                  // Safe date formatting: parse YYYY-MM-DD string directly
+                  const parts = dateStr.split('-');
+                  const dayNum = parseInt(parts[2] || '1', 10);
+                  const monthNum = parseInt(parts[1] || '10', 10);
+                  const monthLabel = MONTH_NAMES[monthNum] || 'Oct';
+
+                  const displayValue = chartMetric === 'distance'
+                    ? `${formatDistance(dayDistance)} ${unitLabel}`
+                    : `${(daySteps / 1000).toFixed(1)}k`;
+
+                  return (
+                    <div
+                      key={dateStr}
+                      className="flex-1 min-w-[65px] max-w-[90px] h-full flex flex-col justify-end items-center group relative cursor-pointer"
+                    >
+                      {/* Hover Tooltip Card */}
+                      <div className="absolute -top-24 sm:-top-28 left-1/2 -translate-x-1/2 bg-slate-900 text-white p-2.5 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-30 min-w-[160px] text-xs">
+                        <div className="font-extrabold text-pink-300 border-b border-slate-700 pb-1 mb-1 flex items-center justify-between">
+                          <span>{monthLabel} {dayNum}, {parts[0]}</span>
+                          <span>{formatDistance(dayDistance)} {unitLabel}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-300 mb-1">
+                          <strong>{formatNumber(daySteps)}</strong> collective steps
+                        </div>
+                        <div className="space-y-0.5 pt-0.5 border-t border-slate-800 text-[10px]">
+                          {day.walkerDetails.map((w, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-slate-400">
+                              <span className="flex items-center gap-1 text-white">
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: w.color }} />
+                                {w.name}
+                              </span>
+                              <span>{formatDistance(w.distance)} {unitLabel}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Number Label Above Bar */}
+                      <div className="text-[11px] sm:text-xs font-black text-pink-700 mb-1.5 group-hover:scale-110 transition-transform">
+                        {displayValue}
+                      </div>
+
+                      {/* The Bar */}
                       <div
-                        className="w-full bg-gradient-to-t from-pink-500 to-rose-400 group-hover:from-pink-600 group-hover:to-rose-500 rounded-t-xl transition-all shadow-xs"
+                        className="w-full max-w-[48px] bg-gradient-to-t from-pink-600 via-rose-500 to-pink-400 group-hover:from-pink-500 group-hover:to-rose-400 rounded-t-xl shadow-md transition-all duration-300 group-hover:shadow-pink-300/50"
                         style={{ height: `${heightPercent}%` }}
                       />
-                    </div>
 
-                    {/* Date label */}
-                    <div className="text-[10px] sm:text-xs font-bold text-slate-500 mt-2">
-                      {dayLabel}
+                      {/* Date Axis Label Below */}
+                      <div className="text-center mt-2.5">
+                        <span className="block text-xs sm:text-sm font-extrabold text-slate-800">
+                          {dayNum}
+                        </span>
+                        <span className="block text-[10px] font-bold text-pink-600 uppercase tracking-wider">
+                          {monthLabel}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-[9px] text-slate-400 uppercase font-medium">
-                      {monthName}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
             </div>
+
+            {/* Chart Legend */}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-medium px-2">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-md bg-gradient-to-tr from-pink-600 to-rose-400" />
+                <span>Hover over any bar to see who walked on that day</span>
+              </div>
+              <span className="text-pink-600 font-bold">
+                October 100 Miles Challenge
+              </span>
+            </div>
+
           </div>
         ) : (
-          <div className="py-12 text-center text-slate-400 text-sm">
+          <div className="py-16 text-center text-slate-400 text-sm">
             No walking activity recorded yet this month.
           </div>
         )}
