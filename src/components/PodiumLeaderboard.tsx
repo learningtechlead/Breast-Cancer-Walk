@@ -59,7 +59,13 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
         rank: 0,
       };
     })
-    .sort((a, b) => b.totalSteps - a.totalSteps)
+    // Distance is King: sort primarily by distance walked / % of target
+    .sort((a, b) => {
+      if (b.displayDistance !== a.displayDistance) {
+        return b.displayDistance - a.displayDistance;
+      }
+      return b.totalSteps - a.totalSteps;
+    })
     .map((item, index) => ({
       ...item,
       rank: index + 1,
@@ -84,17 +90,17 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
             Top Walkers Leaderboard
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Aiming for 100 miles ({goal.targetKm} km) in October • Click any walker to record their steps
+            Ranked by distance walked towards the 100 miles ({goal.targetKm} km) goal • Distance is King!
           </p>
         </div>
 
-        <div className="text-xs font-semibold text-pink-700 bg-pink-50 px-3 py-1.5 rounded-full border border-pink-200 flex items-center gap-1.5">
-          <Target className="w-3.5 h-3.5 text-pink-600" />
-          <span>Target: 100 Miles ({goal.targetKm} KM)</span>
+        <div className="text-xs font-extrabold text-pink-700 bg-pink-100/80 px-3.5 py-1.5 rounded-full border border-pink-200 flex items-center gap-1.5 shadow-2xs">
+          <Target className="w-4 h-4 text-pink-600" />
+          <span>Ranked by Distance & % of 100 Miles</span>
         </div>
       </div>
 
-      {/* Visual Podium for Top Walkers */}
+      {/* Visual Podium for Top Walkers (Distance-Ranked) */}
       {members.length >= 2 && (
         <div className={`grid ${members.length >= 3 ? 'grid-cols-3 max-w-2xl' : 'grid-cols-2 max-w-lg'} gap-3 sm:gap-6 items-end pt-8 pb-4 px-2 mx-auto`}>
           
@@ -119,16 +125,16 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
               <div className="text-center font-bold text-xs sm:text-sm text-slate-900 group-hover:text-pink-600 transition-colors truncate max-w-[100px] sm:max-w-none">
                 {top2.member.name}
               </div>
-              <div className="text-xs text-pink-600 font-black">
-                {formatNumber(top2.totalSteps)} steps
-              </div>
-              <div className="text-[11px] text-slate-500 font-bold">
+
+              {/* Distance as Primary Number */}
+              <div className="text-sm sm:text-base text-pink-700 font-black">
                 {getDistanceDisplay(top2.totalDistanceKm, top2.totalDistanceMiles)}
               </div>
-              
-              {/* Distance Target Badge */}
-              <div className="mt-1 px-2 py-0.5 rounded-md bg-pink-50 border border-pink-200 text-[10px] font-extrabold text-pink-700">
-                {top2.percent}% of {targetDistance} {unitLabel}
+              <div className="text-[11px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-md border border-pink-200 mt-0.5">
+                {top2.percent}% of 100 mi
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                {formatNumber(top2.totalSteps)} steps
               </div>
 
               {/* Podium Column */}
@@ -141,7 +147,7 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
             </div>
           )}
 
-          {/* #1 Rank (Gold) */}
+          {/* #1 Rank (Gold - Distance Leader) */}
           {top1 && (
             <div
               onClick={() => onSelectMemberForSteps(top1.member.id)}
@@ -164,22 +170,22 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
               <div className="text-center font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-pink-600 transition-colors truncate max-w-[110px] sm:max-w-none">
                 {top1.member.name}
               </div>
-              <div className="text-xs sm:text-sm text-pink-600 font-black">
-                {formatNumber(top1.totalSteps)} steps
-              </div>
-              <div className="text-xs text-slate-500 font-bold">
+
+              {/* Distance as Primary Number */}
+              <div className="text-base sm:text-lg text-pink-700 font-black">
                 {getDistanceDisplay(top1.totalDistanceKm, top1.totalDistanceMiles)}
               </div>
-
-              {/* Distance Target Badge */}
-              <div className="mt-1 px-2.5 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-[10px] font-extrabold text-amber-900">
-                {top1.percent}% of {targetDistance} {unitLabel}
+              <div className="text-xs font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300 mt-0.5">
+                {top1.percent}% of 100 mi
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                {formatNumber(top1.totalSteps)} steps
               </div>
 
               {/* Podium Column */}
               <div className="w-full h-32 sm:h-36 bg-gradient-to-t from-pink-500 via-rose-500 to-pink-400 text-white rounded-t-2xl mt-3 flex flex-col items-center justify-center border-t-4 border-amber-300 shadow-md p-2 text-center">
                 <Trophy className="w-8 h-8 text-amber-300 fill-amber-200" />
-                <span className="text-[11px] font-bold text-pink-100 uppercase tracking-wider mt-1">Leader</span>
+                <span className="text-[11px] font-bold text-pink-100 uppercase tracking-wider mt-1">Distance Leader</span>
                 <span className="text-[10px] font-extrabold text-white mt-0.5">
                   {formatDistance(top1.remaining)} {unitLabel} to go
                 </span>
@@ -208,16 +214,16 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
               <div className="text-center font-bold text-xs sm:text-sm text-slate-900 group-hover:text-pink-600 transition-colors truncate max-w-[100px] sm:max-w-none">
                 {top3.member.name}
               </div>
-              <div className="text-xs text-pink-600 font-black">
-                {formatNumber(top3.totalSteps)}
-              </div>
-              <div className="text-[11px] text-slate-500 font-bold">
+
+              {/* Distance as Primary Number */}
+              <div className="text-sm sm:text-base text-pink-700 font-black">
                 {getDistanceDisplay(top3.totalDistanceKm, top3.totalDistanceMiles)}
               </div>
-
-              {/* Distance Target Badge */}
-              <div className="mt-1 px-2 py-0.5 rounded-md bg-orange-100 border border-orange-200 text-[10px] font-extrabold text-amber-900">
-                {top3.percent}% of {targetDistance} {unitLabel}
+              <div className="text-[11px] font-bold text-amber-900 bg-orange-100 px-2 py-0.5 rounded-md border border-orange-200 mt-0.5">
+                {top3.percent}% of 100 mi
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                {formatNumber(top3.totalSteps)} steps
               </div>
 
               {/* Podium Column */}
@@ -233,7 +239,7 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
         </div>
       )}
 
-      {/* Full Leaderboard List */}
+      {/* Full Leaderboard List (Ranked by Distance) */}
       <div className="bg-white rounded-2xl border border-pink-100 shadow-soft-pink overflow-hidden">
         <div className="px-5 py-3.5 bg-pink-50/60 border-b border-pink-100 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
           <div className="flex items-center gap-6">
@@ -242,7 +248,7 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
           </div>
           <div className="flex items-center gap-6 sm:gap-8">
             <span className="hidden md:inline">Days</span>
-            <span className="w-36 text-right">100 Mi Target</span>
+            <span className="w-40 text-right">Distance (King)</span>
             <span className="w-24 text-right">Total Steps</span>
             <span className="w-16 text-center">Action</span>
           </div>
@@ -260,11 +266,11 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="w-8 flex items-center justify-center font-extrabold text-sm">
                     {item.rank === 1 ? (
-                      <span className="w-7 h-7 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">1</span>
+                      <span className="w-7 h-7 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-black">1</span>
                     ) : item.rank === 2 ? (
-                      <span className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center">2</span>
+                      <span className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-black">2</span>
                     ) : item.rank === 3 ? (
-                      <span className="w-7 h-7 rounded-full bg-orange-100 text-amber-800 flex items-center justify-center">3</span>
+                      <span className="w-7 h-7 rounded-full bg-orange-100 text-amber-800 flex items-center justify-center font-black">3</span>
                     ) : (
                       <span className="text-slate-400 font-semibold">{item.rank}</span>
                     )}
@@ -284,23 +290,23 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
                     <div className="text-[11px] text-slate-400 flex items-center gap-1.5 md:hidden">
                       <span>{item.activeDays} days</span>
                       <span>•</span>
-                      <span>{getDistanceDisplay(item.totalDistanceKm, item.totalDistanceMiles)}</span>
+                      <span>{formatNumber(item.totalSteps)} steps</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Right: Target progress, Steps & Action */}
+                {/* Right: Distance & % Target as Primary, Steps & Action */}
                 <div className="flex items-center gap-4 sm:gap-6">
                   {/* Days Active */}
                   <div className="text-xs font-semibold text-slate-500 hidden md:block w-12 text-center">
                     {item.activeDays}d
                   </div>
 
-                  {/* 100 Miles / 160 KM Target meter */}
-                  <div className="w-36 text-right">
-                    <div className="font-bold text-xs text-slate-800 flex items-center justify-end gap-1">
-                      <span>{formatDistance(item.displayDistance)} / {targetDistance} {unitLabel}</span>
-                      <span className="text-pink-600 font-black">({item.percent}%)</span>
+                  {/* Distance & 100 Miles Target meter */}
+                  <div className="w-40 text-right">
+                    <div className="font-extrabold text-sm text-pink-700 flex items-center justify-end gap-1">
+                      <span>{formatDistance(item.displayDistance)} {unitLabel}</span>
+                      <span className="text-xs font-black text-slate-800">({item.percent}%)</span>
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-1">
                       <div
@@ -309,14 +315,14 @@ export const PodiumLeaderboard: React.FC<PodiumLeaderboardProps> = ({
                       />
                     </div>
                     <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
-                      {item.remaining > 0 ? `${formatDistance(item.remaining)} ${unitLabel} left` : 'Completed! 🎉'}
+                      {item.remaining > 0 ? `${formatDistance(item.remaining)} ${unitLabel} to 100 mi` : '100 Miles Reached! 🎉'}
                     </span>
                   </div>
 
                   {/* Steps */}
                   <div className="w-24 text-right hidden sm:block">
-                    <div className="font-extrabold text-sm text-slate-900 flex items-center justify-end gap-1">
-                      <Footprints className="w-3.5 h-3.5 text-pink-500" />
+                    <div className="font-bold text-xs text-slate-600 flex items-center justify-end gap-1">
+                      <Footprints className="w-3.5 h-3.5 text-pink-400" />
                       <span>{formatNumber(item.totalSteps)}</span>
                     </div>
                   </div>

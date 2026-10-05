@@ -153,20 +153,37 @@ class StorageService {
       // Netlify API not available in local dev or offline; fallback to localStorage
     }
 
-    // 2. Try LocalStorage
+    // 2. Try LocalStorage (preserves any registered walkers across updates)
     try {
-      const local = localStorage.getItem(STORAGE_KEY);
-      if (local) {
-        const parsed = JSON.parse(local);
-        if (parsed.members && parsed.logs) {
-          return parsed;
+      const keys = [STORAGE_KEY, 'pink_ribbon_walk_app_state_v2', 'pink_ribbon_walk_app_state_v1'];
+      for (const k of keys) {
+        const local = localStorage.getItem(k);
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (parsed.members && parsed.members.length > 0 && parsed.logs) {
+            const merged: AppState = {
+              members: parsed.members,
+              logs: parsed.logs,
+              goal: {
+                ...INITIAL_STATE.goal,
+                ...(parsed.goal || {}),
+                title: INITIAL_STATE.goal.title,
+                targetMiles: 100,
+                targetKm: 160,
+                fundraisingUrl: INITIAL_STATE.goal.fundraisingUrl,
+              },
+              unitPreference: parsed.unitPreference || 'mi',
+            };
+            this.saveToLocal(merged);
+            return merged;
+          }
         }
       }
     } catch (err) {
       console.warn('Could not parse localStorage state:', err);
     }
 
-    // 3. Fallback to Initial State
+    // 3. Fallback to Initial State (only on first clean run)
     this.saveToLocal(INITIAL_STATE);
     return INITIAL_STATE;
   }
